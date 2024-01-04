@@ -1,9 +1,13 @@
 use adnl::node::{AdnlNodeConfig, AdnlNodeConfigJson};
 use std::{
-    env, ffi::OsString, fs::{File, read_to_string}, io::Write, net::{IpAddr, SocketAddr}, 
-    path::PathBuf
+    env,
+    ffi::OsString,
+    fs::{read_to_string, File},
+    io::Write,
+    net::{IpAddr, SocketAddr},
+    path::PathBuf,
 };
-use ton_types::{fail, sha256_digest, Result};
+use tvm_types::{fail, sha256_digest, Result};
 
 const ENV_VAR_PORT: &str = "BASE_PORT";
 
@@ -12,10 +16,10 @@ pub fn configure_ip(template: &str, default_port: u16) -> String {
     let Some(pos) = template.find(":") else {
         panic!("Wrong IP template {}", template)
     };
-    let port: u16 = port.parse()
-        .expect(&format!("Wrong port value {}", port));
-    let offset: u16 = template[pos + 1..].parse()
-        .expect(&format!("Wrong port in template {}", template)); 
+    let port: u16 = port.parse().expect(&format!("Wrong port value {}", port));
+    let offset: u16 = template[pos + 1..]
+        .parse()
+        .expect(&format!("Wrong port in template {}", template));
     let ret = format!("{}:{}", &template[..pos], port + offset);
     println!("\nUsing {} local address", ret);
     ret
@@ -27,9 +31,10 @@ pub async fn resolve_ip(ip: &str) -> Result<SocketAddr> {
         let ip = external_ip::ConsensusBuilder::new()
             .add_sources(external_ip::get_http_sources::<external_ip::Sources>())
             .build()
-            .get_consensus().await;
+            .get_consensus()
+            .await;
         if let Some(IpAddr::V4(ip)) = ip {
-            ret.set_ip(IpAddr::V4(ip))                   
+            ret.set_ip(IpAddr::V4(ip))
         } else {
             fail!("Cannot obtain own external IP address")
         }
@@ -48,7 +53,10 @@ pub fn get_test_config_path(prefix: &str, addr: &SocketAddr) -> Result<PathBuf> 
         if parent.as_os_str().is_empty() {
             None
         } else if !parent.exists() {
-            fail!("Cannot generate config path: folder '{}' does not exist", parent.display())
+            fail!(
+                "Cannot generate config path: folder '{}' does not exist",
+                parent.display()
+            )
         } else {
             Some(parent)
         }
@@ -67,8 +75,8 @@ pub fn get_test_config_path(prefix: &str, addr: &SocketAddr) -> Result<PathBuf> 
     }
     let suffix = if let IpAddr::V4(ip) = addr.ip() {
         format!(
-            "_{}_{}.json", 
-            ip.to_string().as_str(), 
+            "_{}_{}.json",
+            ip.to_string().as_str(),
             addr.port().to_string().as_str()
         )
     } else {
@@ -77,12 +85,12 @@ pub fn get_test_config_path(prefix: &str, addr: &SocketAddr) -> Result<PathBuf> 
     file_name.push(suffix);
     path.set_file_name(file_name);
     Ok(path)
-} 
+}
 
 pub fn generate_adnl_configs(
     ip: &str,
     tags: Vec<usize>,
-    addr: Option<SocketAddr>
+    addr: Option<SocketAddr>,
 ) -> Result<(AdnlNodeConfigJson, AdnlNodeConfig)> {
     if let Some(addr) = addr {
         let mut keys = Vec::new();
@@ -101,10 +109,10 @@ pub fn generate_adnl_configs(
 }
 
 pub async fn get_adnl_config(
-    prefix: &str, 
-    ip: &str, 
+    prefix: &str,
+    ip: &str,
     tags: Vec<usize>,
-    deterministic: bool
+    deterministic: bool,
 ) -> Result<AdnlNodeConfig> {
     let resolved_ip = resolve_ip(ip).await?;
     let config = get_test_config_path(prefix, &resolved_ip)?;
@@ -118,9 +126,7 @@ pub async fn get_adnl_config(
             None
         };
         let (json, bin) = generate_adnl_configs(ip, tags, resolved_ip)?;
-        File::create(config)?.write_all(
-            serde_json::to_string_pretty(&json)?.as_bytes()
-        )?;
+        File::create(config)?.write_all(serde_json::to_string_pretty(&json)?.as_bytes())?;
         bin
     };
     Ok(config)
