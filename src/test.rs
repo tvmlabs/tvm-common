@@ -10,4 +10,3 @@ pub fn init_test() -> tokio::runtime::Runtime {
     init_test_log();
     tokio::runtime::Runtime::new().unwrap()
 }
-
