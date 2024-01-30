@@ -16,7 +16,11 @@ fn init_log_without_config(log_level: log::LevelFilter, output_file: Option<&str
             .unwrap();
         log4rs::config::Config::builder()
             .appender(log4rs::config::Appender::builder().build("file", Box::new(file)))
-            .build(log4rs::config::Root::builder().appender("file").build(log_level))
+            .build(
+                log4rs::config::Root::builder()
+                    .appender("file")
+                    .build(log_level),
+            )
             .unwrap()
     } else {
         let console = log4rs::append::console::ConsoleAppender::builder()
@@ -24,7 +28,11 @@ fn init_log_without_config(log_level: log::LevelFilter, output_file: Option<&str
             .build();
         log4rs::config::Config::builder()
             .appender(log4rs::config::Appender::builder().build("console", Box::new(console)))
-            .build(log4rs::config::Root::builder().appender("console").build(log_level))
+            .build(
+                log4rs::config::Root::builder()
+                    .appender("console")
+                    .build(log_level),
+            )
             .unwrap()
     };
     log4rs::init_config(config).ok();
